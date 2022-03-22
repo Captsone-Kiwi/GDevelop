@@ -18,6 +18,7 @@
     "useExternalSourceFiles": false,
     "version": "1.0.0",
     "name": "Gdevelop",
+    "description": "",
     "author": "",
     "windowWidth": 800,
     "windowHeight": 600,
@@ -43,6 +44,11 @@
       "showProgressBar": true
     },
     "authorIds": [],
+    "playableDevices": [
+      "keyboard",
+      "gamepad",
+      "mobile"
+    ],
     "extensionProperties": [],
     "platforms": [
       {
@@ -13845,8 +13851,8 @@
           "name": "Player",
           "persistentUuid": "573e7fd8-d7b3-480c-b6e2-8fd2d2a97e9a",
           "width": 64,
-          "x": 502.54412841796875,
-          "y": 715.9033813476562,
+          "x": 502,
+          "y": 715,
           "zOrder": 9,
           "numberProperties": [],
           "stringProperties": [],
@@ -25324,6 +25330,44 @@
             "includeConfig": 0
           },
           "target": "Collision event"
+        },
+        {
+          "disabled": false,
+          "folded": false,
+          "type": "BuiltinCommonInstructions::Standard",
+          "conditions": [
+            {
+              "type": {
+                "inverted": false,
+                "value": "DepartScene"
+              },
+              "parameters": [
+                ""
+              ],
+              "subInstructions": []
+            }
+          ],
+          "actions": [],
+          "events": [
+            {
+              "disabled": false,
+              "folded": false,
+              "type": "BuiltinCommonInstructions::JsCode",
+              "inlineCode": "runtimeScene.ws = new WebSocket(\"ws://localhost:5100/ws\");\nconst id = Math.floor(Math.random() * Math.floor(100000))\nconst sit = 0;\nruntimeScene.player_id = id\nruntimeScene.delayedEvents = []\n\nruntimeScene.ws.onopen = function(event) {\n    const data = {\n        command: \"NEW_PLAYER\",\n        player_id: runtimeScene.player_id,\n        data : {\n            x: 490,\n            y: 600,\n            z: 9\n        }\n    }\n    setTimeout(() => {\n        runtimeScene.ws.send(JSON.stringify(data))\n    }, 500);\n};\n\nruntimeScene.ws.onmessage = function (event) {\n    const e = JSON.parse(event.data)\n    console.log(\"Command : \",e.command);\n    console.log(\"Full : \",e)\n    switch(e.command) {\n        case \"NEW_PLAYER\":\n            newPlayer(e)\n            break;\n        case \"MOVEMENT_LEFT\":\n            leftMovement(e)\n            break;\n        case \"MOVEMENT_RIGHT\":\n            rightMovement(e)\n            break;\n        case \"MOVEMENT_DOWN\":\n            downMovement(e)\n            break;\n        case \"MOVEMENT_UP\":\n            upMovement(e)\n            break;\n        case \"RELEASED_LEFT\":\n            leftRelease(e)\n            break;\n        case \"RELEASED_RIGHT\":\n            rightRelease(e)\n            break;\n        case \"RELEASED_DOWN\":\n            downRelease(e)\n            break\n        case \"RELEASED_UP\":\n            upRelease(e)\n            break;\n        case \"SPACEBAR\":\n            spacebar(e)\n            break;\n        case \"REFRESH_PLAYER\":\n            refreshPlayers(e)\n            break;\n        default:\n            console.log(\"unknown command: \" + e.command)\n    }\n}\n\nfunction newPlayer(event) {\n    const p = createPlayer(event)\n    if(runtimeScene.player_id !== p.player_id){\n        // create that player\n        const o = runtimeScene.getObjects(\"Player\").find((o) => o.player_id === runtimeScene.player_id)\n        const update = {\n            command: \"REFRESH_PLAYER\",\n            player_id: runtimeScene.player_id,\n            data: {\n                x: o.getX(),\n                y: o.getY(),\n                z: o.getZOrder()\n            }\n        }\n        runtimeScene.ws.send(JSON.stringify(update))\n    }\n}\n\nfunction refreshPlayers(event) {\n    const o = runtimeScene.getObjects(\"Player\").find((o) => o.player_id === event.player_id)\n    if(typeof o === \"undefined\") {\n        const p = createPlayer(event)\n        // p.setColor(\"255;100;100\")\n    }\n}\n\n\nfunction createPlayer(event) {\n    // BODY\n    console.log(\"Create Player : \",event);\n    const player = runtimeScene.createObject(\"Player\")\n    player.setX(event.data.x)\n    player.setY(event.data.y)\n    player.setZOrder(event.data.z)\n    player.setHeight(64);\n    player.setWidth(64);\n    player.player_id = event.player_id\n    player.positions = []\n    // Top\n    const top = runtimeScene.createObject(\"Top\")\n    top.setX(player.getPointX(\"zero\"))\n    top.setY(player.getPointY(\"zero\"))\n    top.setZOrder(event.data.z + 1)\n    top.setHeight(64);\n    top.setWidth(64);\n    top.player_id = event.player_id\n    top.positions = []\n    \n    // Bottom\n    const bottom = runtimeScene.createObject(\"Bottom\")\n    bottom.setX(player.getPointX(\"zero\"))\n    bottom.setY(player.getPointY(\"zero\"))\n    bottom.setZOrder(event.data.z + 1)\n    bottom.setHeight(64);\n    bottom.setWidth(64);\n    bottom.player_id = event.player_id\n    bottom.positions = []\n\n    // Shoes\n    const shoes = runtimeScene.createObject(\"Shoes\")\n    shoes.setX(player.getPointX(\"zero\"))\n    shoes.setY(player.getPointY(\"zero\"))\n    shoes.setZOrder(event.data.z + 1)\n    shoes.setHeight(64);\n    shoes.setWidth(64);\n    shoes.player_id = event.player_id\n    shoes.positions = []\n\n    // Hair\n    const hair = runtimeScene.createObject(\"Hair\")\n    hair.setX(player.getPointX(\"zero\"))\n    hair.setY(player.getPointY(\"zero\"))\n    hair.setZOrder(event.data.z + 1)\n    hair.setHeight(64);\n    hair.setWidth(64);\n    hair.player_id = event.player_id\n    hair.positions = []\n\n    // camera\n    var camX = runtimeScene.getLayer(\"\").getCameraX(player.player_id)\n    var camY = runtimeScene.getLayer(\"\").getCameraY(player.player_id)\n\n    runtimeScene.getLayer(\"\").setCameraX(lerp(camX,player.getX(),0.8), player.player_id)\n    runtimeScene.getLayer(\"\").setCameraY(lerp(camY,player.getY(),0.8), player.player_id)\n\n    return player\n}\n\nfunction leftMovement(event){\n    const o = runtimeScene.getObjects(\"Player\").find((o) => o.player_id === event.player_id)\n    const top = runtimeScene.getObjects(\"Top\").find((o) => o.player_id === event.player_id)\n    const bottom = runtimeScene.getObjects(\"Bottom\").find((o) => o.player_id === event.player_id)\n    const shoes = runtimeScene.getObjects(\"Shoes\").find((o) => o.player_id === event.player_id)\n    const hair = runtimeScene.getObjects(\"Hair\").find((o) => o.player_id === event.player_id)\n    if (typeof o === \"undefined\") {\n        return\n    }\n    o.setAnimationName(\"Left-walking\")\n    top.setAnimationName(\"Left-walking\")\n    bottom.setAnimationName(\"Left-walking\")\n    shoes.setAnimationName(\"Left-walking\")\n    hair.setAnimationName(\"Left-walking\")\n\n    movement(event)\n}\n\nfunction rightMovement(event){\n    const o = runtimeScene.getObjects(\"Player\").find((o) => o.player_id === event.player_id)\n    const top = runtimeScene.getObjects(\"Top\").find((o) => o.player_id === event.player_id)\n    const bottom = runtimeScene.getObjects(\"Bottom\").find((o) => o.player_id === event.player_id)\n    const shoes = runtimeScene.getObjects(\"Shoes\").find((o) => o.player_id === event.player_id)\n    const hair = runtimeScene.getObjects(\"Hair\").find((o) => o.player_id === event.player_id)\n\n    if (typeof o === \"undefined\") {\n        return\n    }\n    o.setAnimationName(\"Right-walking\")\n    top.setAnimationName(\"Right-walking\")\n    bottom.setAnimationName(\"Right-walking\")\n    shoes.setAnimationName(\"Right-walking\")\n    hair.setAnimationName(\"Right-walking\")\n    movement(event)\n}\n\nfunction upMovement(event){\n    const o = runtimeScene.getObjects(\"Player\").find((o) => o.player_id === event.player_id)\n    const top = runtimeScene.getObjects(\"Top\").find((o) => o.player_id === event.player_id)\n    const bottom = runtimeScene.getObjects(\"Bottom\").find((o) => o.player_id === event.player_id)\n    const shoes = runtimeScene.getObjects(\"Shoes\").find((o) => o.player_id === event.player_id)\n    const hair = runtimeScene.getObjects(\"Hair\").find((o) => o.player_id === event.player_id)\n\n    if (typeof o === \"undefined\") {\n        return\n    }\n    o.setAnimationName(\"Up-walking\")\n    top.setAnimationName(\"Up-walking\")\n    bottom.setAnimationName(\"Up-walking\")\n    shoes.setAnimationName(\"Up-walking\")\n    hair.setAnimationName(\"Up-walking\")\n    movement(event)\n}\n\nfunction downMovement(event){\n    const o = runtimeScene.getObjects(\"Player\").find((o) => o.player_id === event.player_id)\n    const top = runtimeScene.getObjects(\"Top\").find((o) => o.player_id === event.player_id)\n    const bottom = runtimeScene.getObjects(\"Bottom\").find((o) => o.player_id === event.player_id)\n    const shoes = runtimeScene.getObjects(\"Shoes\").find((o) => o.player_id === event.player_id)\n    const hair = runtimeScene.getObjects(\"Hair\").find((o) => o.player_id === event.player_id)\n\n    if (typeof o === \"undefined\") {\n        return\n    }\n    o.setAnimationName(\"Down-walking\")\n    top.setAnimationName(\"Down-walking\")\n    bottom.setAnimationName(\"Down-walking\")\n    shoes.setAnimationName(\"Down-walking\")\n    hair.setAnimationName(\"Down-walking\")\n    movement(event)\n}\n\nfunction lerp(a,b,c){\n    return a + (b - a) * c;\n}\n\nfunction spacebar(event){\n    const o = runtimeScene.getObjects(\"Player\").find((o) => o.player_id === event.player_id)\n    const top = runtimeScene.getObjects(\"Top\").find((o) => o.player_id === event.player_id)\n    const bottom = runtimeScene.getObjects(\"Bottom\").find((o) => o.player_id === event.player_id)\n    const shoes = runtimeScene.getObjects(\"Shoes\").find((o) => o.player_id === event.player_id)\n    const hair = runtimeScene.getObjects(\"Hair\").find((o) => o.player_id === event.player_id)\n    if (typeof o === \"undefined\") {\n        return\n    }\n    // To global variable\n    const leftChairGroup = runtimeScene.getObjects(\"NewObject16\").concat(runtimeScene.getObjects(\"NewObject20\"))\n    const rightChairGroup = runtimeScene.getObjects(\"NewObject17\").concat(runtimeScene.getObjects(\"NewObject19\"))\n    const downChairGroup = runtimeScene.getObjects(\"NewObject5\").concat(runtimeScene.getObjects(\"NewObject18\")).concat(runtimeScene.getObjects(\"NewObject25\")).concat(runtimeScene.getObjects(\"NewObject38\")).concat(runtimeScene.getObjects(\"NewObject10\"))\n    const upChairGroup = runtimeScene.getObjects(\"NewObject6\").concat(runtimeScene.getObjects(\"NewObject32\")).concat(runtimeScene.getObjects(\"NewObject21\"))\n    for(let obj of leftChairGroup){\n        if (gdjs.RuntimeObject.collisionTest(o,obj,false) == true){\n            o.setAnimationName(\"Left-sit\")\n            top.setAnimationName(\"Left-sit\")\n            bottom.setAnimationName(\"Left-sit\")\n            shoes.setAnimationName(\"Left-sit\")\n            hair.setAnimationName(\"Left-sit\")\n            \n            o.setX(obj.getPointX(\"Center\"))\n            o.setY(obj.getPointY(\"Center\"))\n\n            top.setX(o.getPointX(\"zero\"))\n            top.setY(o.getPointY(\"zero\"))\n            top.setZOrder(o.getZOrder()+1)\n\n            bottom.setX(o.getPointX(\"zero\"))\n            bottom.setY(o.getPointY(\"zero\"))\n            bottom.setZOrder(o.getZOrder()+1)\n\n            shoes.setX(o.getPointX(\"zero\"))\n            shoes.setY(o.getPointY(\"zero\"))\n            shoes.setZOrder(o.getZOrder()+1)\n\n            hair.setX(o.getPointX(\"zero\"))\n            hair.setY(o.getPointY(\"zero\"))\n            hair.setZOrder(o.getZOrder()+1)\n\n            // sit = 1;\n            return;\n        }\n    }\n\n    for(let obj of rightChairGroup){\n        if (gdjs.RuntimeObject.collisionTest(o,obj,false) == true){\n            o.setAnimationName(\"Right-sit\")\n            top.setAnimationName(\"Right-sit\")\n            bottom.setAnimationName(\"Right-sit\")\n            shoes.setAnimationName(\"Right-sit\")\n            hair.setAnimationName(\"Right-sit\")\n            \n            o.setX(obj.getPointX(\"Center\"))\n            o.setY(obj.getPointY(\"Center\"))\n\n            top.setX(o.getPointX(\"zero\"))\n            top.setY(o.getPointY(\"zero\"))\n            top.setZOrder(o.getZOrder()+1)\n\n            bottom.setX(o.getPointX(\"zero\"))\n            bottom.setY(o.getPointY(\"zero\"))\n            bottom.setZOrder(o.getZOrder()+1)\n\n            shoes.setX(o.getPointX(\"zero\"))\n            shoes.setY(o.getPointY(\"zero\"))\n            shoes.setZOrder(o.getZOrder()+1)\n\n            hair.setX(o.getPointX(\"zero\"))\n            hair.setY(o.getPointY(\"zero\"))\n            hair.setZOrder(o.getZOrder()+1)\n            return;\n        }\n    }\n\n    for(let obj of downChairGroup){\n        if (gdjs.RuntimeObject.collisionTest(o,obj,false) == true){\n            o.setAnimationName(\"Down-sit\")\n            top.setAnimationName(\"Down-sit\")\n            bottom.setAnimationName(\"Down-sit\")\n            shoes.setAnimationName(\"Down-sit\")\n            hair.setAnimationName(\"Down-sit\")\n            \n            o.setX(obj.getPointX(\"Center\"))\n            o.setY(obj.getPointY(\"Center\"))\n\n            top.setX(o.getPointX(\"zero\"))\n            top.setY(o.getPointY(\"zero\"))\n            top.setZOrder(o.getZOrder()+1)\n\n            bottom.setX(o.getPointX(\"zero\"))\n            bottom.setY(o.getPointY(\"zero\"))\n            bottom.setZOrder(o.getZOrder()+1)\n\n            shoes.setX(o.getPointX(\"zero\"))\n            shoes.setY(o.getPointY(\"zero\"))\n            shoes.setZOrder(o.getZOrder()+1)\n\n            hair.setX(o.getPointX(\"zero\"))\n            hair.setY(o.getPointY(\"zero\"))\n            hair.setZOrder(o.getZOrder()+1)\n            return;\n        }\n    }\n\n    for(let obj of upChairGroup){\n        if (gdjs.RuntimeObject.collisionTest(o,obj,false) == true){\n            o.setAnimationName(\"Up-sit\")\n            top.setAnimationName(\"Up-sit\")\n            bottom.setAnimationName(\"Up-sit\")\n            shoes.setAnimationName(\"Up-sit\")\n            hair.setAnimationName(\"Up-sit\")\n            \n            o.setX(obj.getPointX(\"Center\"))\n            o.setY(obj.getPointY(\"Center\"))\n\n            top.setX(o.getPointX(\"zero\"))\n            top.setY(o.getPointY(\"zero\"))\n            top.setZOrder(o.getZOrder()+1)\n\n            bottom.setX(o.getPointX(\"zero\"))\n            bottom.setY(o.getPointY(\"zero\"))\n            bottom.setZOrder(o.getZOrder()+1)\n\n            shoes.setX(o.getPointX(\"zero\"))\n            shoes.setY(o.getPointY(\"zero\"))\n            shoes.setZOrder(o.getZOrder()+1)\n\n            hair.setX(o.getPointX(\"zero\"))\n            hair.setY(o.getPointY(\"zero\"))\n            hair.setZOrder(o.getZOrder()+1)\n            return;\n        }\n    }\n\n}\n\nfunction movement(event) {\n    const o = runtimeScene.getObjects(\"Player\").find((o) => o.player_id === event.player_id)\n    const top = runtimeScene.getObjects(\"Top\").find((o) => o.player_id === event.player_id)\n    const bottom = runtimeScene.getObjects(\"Bottom\").find((o) => o.player_id === event.player_id)\n    const shoes = runtimeScene.getObjects(\"Shoes\").find((o) => o.player_id === event.player_id)\n    const hair = runtimeScene.getObjects(\"Hair\").find((o) => o.player_id === event.player_id)\n    if (typeof o === \"undefined\") {\n        return\n    }\n\n    o.setX(event.data.x)\n    o.setY(event.data.y)\n    o.setZOrder(event.data.z)\n\n    top.setX(o.getPointX(\"zero\"))\n    top.setY(o.getPointY(\"zero\"))\n    top.setZOrder(o.getZOrder()+1)\n\n    bottom.setX(o.getPointX(\"zero\"))\n    bottom.setY(o.getPointY(\"zero\"))\n    bottom.setZOrder(o.getZOrder()+1)\n\n    shoes.setX(o.getPointX(\"zero\"))\n    shoes.setY(o.getPointY(\"zero\"))\n    shoes.setZOrder(o.getZOrder()+1)\n\n    hair.setX(o.getPointX(\"zero\"))\n    hair.setY(o.getPointY(\"zero\"))\n    hair.setZOrder(o.getZOrder()+1)\n\n\n    if(o.player_id === id){\n        var camX = runtimeScene.getLayer(\"\").getCameraX(o.player_id)\n        var camY = runtimeScene.getLayer(\"\").getCameraY(o.player_id)\n\n        runtimeScene.getLayer(\"\").setCameraX(lerp(camX,o.getX(),0.8), o.player_id)\n        runtimeScene.getLayer(\"\").setCameraY(lerp(camY,o.getY(),0.8), o.player_id)\n    }\n}\n\nfunction leftRelease(event){\n    const o = runtimeScene.getObjects(\"Player\").find((o) => o.player_id === event.player_id)\n    const top = runtimeScene.getObjects(\"Top\").find((o) => o.player_id === event.player_id)\n    const bottom = runtimeScene.getObjects(\"Bottom\").find((o) => o.player_id === event.player_id)\n    const shoes = runtimeScene.getObjects(\"Shoes\").find((o) => o.player_id === event.player_id)\n    const hair = runtimeScene.getObjects(\"Hair\").find((o) => o.player_id === event.player_id)\n    if (typeof o === \"undefined\") {\n        return\n    }\n    o.setAnimationName(\"Left-idle\")\n    top.setAnimationName(\"Left-idle\")\n    bottom.setAnimationName(\"Left-idle\")\n    shoes.setAnimationName(\"Left-idle\")\n    hair.setAnimationName(\"Left-idle\")\n}\n\nfunction rightRelease(event){\n    const o = runtimeScene.getObjects(\"Player\").find((o) => o.player_id === event.player_id)\n    const top = runtimeScene.getObjects(\"Top\").find((o) => o.player_id === event.player_id)\n    const bottom = runtimeScene.getObjects(\"Bottom\").find((o) => o.player_id === event.player_id)\n    const shoes = runtimeScene.getObjects(\"Shoes\").find((o) => o.player_id === event.player_id)\n    const hair = runtimeScene.getObjects(\"Hair\").find((o) => o.player_id === event.player_id)\n\n    if (typeof o === \"undefined\") {\n        return\n    }\n    o.setAnimationName(\"Right-idle\")\n    top.setAnimationName(\"Right-idle\")\n    bottom.setAnimationName(\"Right-idle\")\n    shoes.setAnimationName(\"Right-idle\")\n    hair.setAnimationName(\"Right-idle\")\n}\n\nfunction upRelease(event){\n    const o = runtimeScene.getObjects(\"Player\").find((o) => o.player_id === event.player_id)\n    const top = runtimeScene.getObjects(\"Top\").find((o) => o.player_id === event.player_id)\n    const bottom = runtimeScene.getObjects(\"Bottom\").find((o) => o.player_id === event.player_id)\n    const shoes = runtimeScene.getObjects(\"Shoes\").find((o) => o.player_id === event.player_id)\n    const hair = runtimeScene.getObjects(\"Hair\").find((o) => o.player_id === event.player_id)\n\n    if (typeof o === \"undefined\") {\n        return\n    }\n    o.setAnimationName(\"Up-idle\")\n    top.setAnimationName(\"Up-idle\")\n    bottom.setAnimationName(\"Up-idle\")\n    shoes.setAnimationName(\"Up-idle\")\n    hair.setAnimationName(\"Up-idle\")\n}\n\nfunction downRelease(event){\n    const o = runtimeScene.getObjects(\"Player\").find((o) => o.player_id === event.player_id)\n    const top = runtimeScene.getObjects(\"Top\").find((o) => o.player_id === event.player_id)\n    const bottom = runtimeScene.getObjects(\"Bottom\").find((o) => o.player_id === event.player_id)\n    const shoes = runtimeScene.getObjects(\"Shoes\").find((o) => o.player_id === event.player_id)\n    const hair = runtimeScene.getObjects(\"Hair\").find((o) => o.player_id === event.player_id)\n    \n    if (typeof o === \"undefined\") {\n        return\n    }\n    \n    o.setAnimationName(\"Down-idle\")\n    top.setAnimationName(\"Down-idle\")\n    bottom.setAnimationName(\"Down-idle\")\n    shoes.setAnimationName(\"Down-idle\")\n    hair.setAnimationName(\"Down-idle\")\n}",
+              "parameterObjects": "",
+              "useStrict": true,
+              "eventsSheetExpanded": true
+            }
+          ]
+        },
+        {
+          "disabled": false,
+          "folded": false,
+          "type": "BuiltinCommonInstructions::JsCode",
+          "inlineCode": "const input = runtimeScene._runtimeGame.getInputManager()\nconst player = runtimeScene.getObjects(\"Player\").find((o) => o.player_id === runtimeScene.player_id)\nconst SPACEBAR = 32;\nconst LEFTKEY = 37;\nconst UPKEY = 38\nconst RIGHTKEY = 39\nconst DOWNKEY = 40\n\nif(typeof player === \"undefined\") {\n    return;\n}\n\nconst movementSpeed = 0.33 * runtimeScene.getTimeManager().getElapsedTime()\n\nlet x = player.getX()\nlet y = player.getY()\nlet z = player.getZOrder()\nlet moved = false;\nvar update;\n\nif(input.wasKeyReleased(SPACEBAR)){\n    moved = true\n    update = {\n        command : \"SPACEBAR\",\n        player_id : runtimeScene.player_id,\n        data: {\n            x : x,\n            y : y,\n            z : z\n        }\n    }\n}\n\nif(input.isKeyPressed(LEFTKEY)) {\n    moved = true\n    x -= movementSpeed\n\n    update = {\n        command: \"MOVEMENT_LEFT\",\n        player_id: runtimeScene.player_id,\n        data: {\n            x : x,\n            y : y,\n            z : z\n        }\n    }\n}\n\nif(input.isKeyPressed(RIGHTKEY)) {\n    moved = true;\n    x += movementSpeed\n\n    update = {\n        command: \"MOVEMENT_RIGHT\",\n        player_id: runtimeScene.player_id,\n        data: {\n            x : x,\n            y : y,\n            z : z\n        }\n    }\n}\n\nif(input.isKeyPressed(UPKEY)) {\n    moved = true\n    y -= movementSpeed\n\n    update = {\n        command: \"MOVEMENT_UP\",\n        player_id: runtimeScene.player_id,\n        data: {\n            x : x,\n            y : y,\n            z : z\n        }\n    }\n}\n\nif(input.isKeyPressed(DOWNKEY)) {\n    moved = true;\n    y += movementSpeed\n\n    update = {\n        command: \"MOVEMENT_DOWN\",\n        player_id: runtimeScene.player_id,\n        data: {\n            x : x,\n            y : y,\n            z : z\n        }\n    }\n}\n\n\nif(input.wasKeyReleased(LEFTKEY)) {\n    moved = true\n    \n    update = {\n        command: \"RELEASED_LEFT\",\n        player_id: runtimeScene.player_id,\n        data: {\n            x : x,\n            y : y,\n            z : z\n        }\n    }\n}\n\nif(input.wasKeyReleased(RIGHTKEY)) {\n    moved = true\n\n    update = {\n        command: \"RELEASED_RIGHT\",\n        player_id: runtimeScene.player_id,\n        data: {\n            x : x,\n            y : y,\n            z : z\n        }\n    }\n}\n\nif(input.wasKeyReleased(UPKEY)) {\n    moved = true\n\n    update = {\n        command: \"RELEASED_UP\",\n        player_id: runtimeScene.player_id,\n        data: {\n            x : x,\n            y : y,\n            z : z\n        }\n    }\n}\n\nif(input.wasKeyReleased(DOWNKEY)) {\n    moved = true\n\n    update = {\n        command: \"RELEASED_DOWN\",\n        player_id: runtimeScene.player_id,\n        data: {\n            x : x,\n            y : y,\n            z : z\n        }\n    }\n}\n\nif(moved === false) {\n    return;\n}\n\n\nruntimeScene.ws.send(JSON.stringify(update))",
+          "parameterObjects": "",
+          "useStrict": true,
+          "eventsSheetExpanded": true
         }
       ],
       "layers": [
@@ -53993,36 +54037,7 @@
           "folded": false,
           "type": "BuiltinCommonInstructions::Standard",
           "conditions": [],
-          "actions": [
-            {
-              "type": {
-                "inverted": false,
-                "value": "SetCameraX"
-              },
-              "parameters": [
-                "",
-                "=",
-                "lerp(CameraX(), Player.X(),0.8)",
-                "",
-                ""
-              ],
-              "subInstructions": []
-            },
-            {
-              "type": {
-                "inverted": false,
-                "value": "SetCameraY"
-              },
-              "parameters": [
-                "",
-                "=",
-                "lerp(CameraY(), Player.Y(), 0.8)",
-                "",
-                ""
-              ],
-              "subInstructions": []
-            }
-          ],
+          "actions": [],
           "events": []
         },
         {
@@ -54300,7 +54315,7 @@
               },
               "parameters": [
                 "",
-                "Right"
+                "d"
               ],
               "subInstructions": []
             }
@@ -54441,7 +54456,7 @@
               },
               "parameters": [
                 "",
-                "Left"
+                "a"
               ],
               "subInstructions": []
             }
@@ -54582,7 +54597,7 @@
               },
               "parameters": [
                 "",
-                "Up"
+                "w"
               ],
               "subInstructions": []
             }
@@ -54723,7 +54738,7 @@
               },
               "parameters": [
                 "",
-                "Down"
+                "s"
               ],
               "subInstructions": []
             }
@@ -54864,7 +54879,7 @@
               },
               "parameters": [
                 "",
-                "Right"
+                "d"
               ],
               "subInstructions": []
             }
@@ -54940,7 +54955,7 @@
               },
               "parameters": [
                 "",
-                "Left"
+                "a"
               ],
               "subInstructions": []
             }
@@ -55016,7 +55031,7 @@
               },
               "parameters": [
                 "",
-                "Up"
+                "w"
               ],
               "subInstructions": []
             }
@@ -55092,7 +55107,7 @@
               },
               "parameters": [
                 "",
-                "Down"
+                "s"
               ],
               "subInstructions": []
             }
@@ -55182,7 +55197,7 @@
               },
               "parameters": [
                 "",
-                "Space"
+                "t"
               ],
               "subInstructions": []
             }
@@ -55354,7 +55369,7 @@
               },
               "parameters": [
                 "",
-                "Space"
+                "t"
               ],
               "subInstructions": []
             }
@@ -55526,7 +55541,7 @@
               },
               "parameters": [
                 "",
-                "Space"
+                "t"
               ],
               "subInstructions": []
             }
@@ -55697,7 +55712,7 @@
               },
               "parameters": [
                 "",
-                "Space"
+                "t"
               ],
               "subInstructions": []
             }
