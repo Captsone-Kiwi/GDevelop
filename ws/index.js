@@ -10,11 +10,9 @@ class Clients {
     saveClient(join, client) {
         if(join == "restroom"){
             this.clientList[0].push(client)
-            console.log("restroom : ", this.clientList[0].length)
         }
         else if(join == "interview"){
             this.clientList[1].push(client)
-            console.log("interview : ", this.clientList[1].length)
         }
     }
 }
